@@ -56,7 +56,6 @@ func doRequest(r *http.Request, consumerTok AppToken, accessTok token) (*FileRea
 		var info struct {
 			Error string `json:"error"`
 		}
-		json.NewDecoder(resp.Body).Decode(&info)
 		return nil, Error{
 			Code:    resp.StatusCode,
 			Message: info.Error}
@@ -167,6 +166,13 @@ type AccountInfo struct {
 	Email string `json:"email"`
 }
 
+type Delta struct {
+	Reset   bool            `json:"reset"`
+	Cursor  string          `json:"cursor"`
+	HasMore bool            `json:"has_more"`
+	Entries [][]interface{} `json:"entries"`
+}
+
 type FileMetadata struct {
 	Size        string         `json:"size"`
 	Rev         string         `json:"rev"`
@@ -230,15 +236,14 @@ const (
 	webHost     = "www.dropbox.com"
 )
 
-func (s *Client) GetDelta() {
+func (s *Client) GetDelta() (*Delta, error) {
 	u := apiURL("/delta")
 	u.RawQuery = s.Config.localeQuery()
-	var delta map[string]interface{}
+	var delta Delta
 	if e := s.postForJson(u, &delta); e != nil {
-		return
+		return nil, e
 	}
-	fmt.Printf("&delta = %#v\n", &delta)
-	return
+	return &delta, nil
 }
 
 func (s *Client) GetAccountInfo() (*AccountInfo, error) {
